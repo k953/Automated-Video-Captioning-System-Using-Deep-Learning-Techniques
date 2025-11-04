@@ -1,3 +1,7 @@
+
+
+
+
 # Automated-Video-Captioning-System-Using-Deep-Learning-Techniques
 
 # 🎥 Automated Video Captioning System using Deep Learning Techniques
@@ -172,5 +176,10 @@ Each model has a separate training notebook:
 ---
 
 ### ⭐ If you like this project, don’t forget to star the repo!
+
+<img width="1536" height="1024" alt="ChatGPT Image Nov 4, 2025, 07_01_42 PM" src="https://github.com/user-attachments/assets/09181994-c3eb-4134-8620-91e7de2038e1" />
+
+
+
 
 
