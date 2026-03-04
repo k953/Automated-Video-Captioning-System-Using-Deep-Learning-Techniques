@@ -1,185 +1,419 @@
+# Lightweight Video Captioning using CNN Encoders and Sequence Decoders
 
+## Overview
 
+This repository presents a **Single Sentence Video Captioning (SSVC)** system that automatically generates a natural language description for a given video clip. Video captioning is a challenging multi-modal task that lies at the intersection of **Computer Vision and Natural Language Processing**, requiring models to understand both spatial and temporal dynamics of visual data and translate them into coherent textual descriptions.
 
+The objective of this project is to design and evaluate **lightweight deep learning architectures** capable of generating accurate captions while maintaining computational efficiency. This is achieved by combining **efficient CNN-based visual encoders** with **sequence modeling decoders such as LSTM, GRU, and Transformer**.
 
-# Automated-Video-Captioning-System-Using-Deep-Learning-Techniques
+The system extracts visual features from sampled video frames using pretrained convolutional neural networks and feeds them into a sequence decoder that generates captions word-by-word.
 
-# 🎥 Automated Video Captioning System using Deep Learning Techniques
-
-This project implements **three progressively advanced models** for generating textual captions from videos —  
-starting from a basic **LSTM-based sequence-to-sequence (S2VT)** model to an **Attention-enhanced** version and finally a **Transformer-based Decoder model**.
-
----
-
-## 🧠 Project Overview
-
-The goal of this project is to make machines *watch a video and describe it in natural language* —  
-for example:  
-> “A man is playing football”  
-> “A woman is cooking in the kitchen.”
-
-This system bridges **Computer Vision** and **Natural Language Processing (NLP)**  
-by combining **CNN (feature extraction)** and **sequence models (caption generation)**.
+This work focuses on evaluating the **trade-off between caption quality and computational efficiency**, enabling potential deployment in **resource-constrained environments such as edge devices and mobile platforms**.
 
 ---
 
-## ⚙️ Model Architectures
+# System Architecture
 
-### 🟩 **1️⃣ S2VT – LSTM Encoder–Decoder**
+The overall architecture follows an **Encoder–Decoder framework**, where the encoder extracts visual features and the decoder generates textual captions.
 
-- Based on the paper *"Sequence to Sequence - Video to Text (Venugopalan et al., CVPR 2015)"*
-- Uses two stacked LSTMs:
-  - **Encoder LSTM:** Encodes frame features sequentially.
-  - **Decoder LSTM:** Generates caption words one by one.
-- Does *not use attention*; relies on the last hidden state to represent the whole video.
-
-**Architecture Flow:**
-
-
-
-Video Frames → CNN (ResNet/I3D) → [40,2048] → Encoder LSTM → Decoder LSTM → Caption
-
-
-**Pros:** Simple and stable.  
-**Cons:** Loses context on long videos.
-
----
-
-### 🟦 **2️⃣ LSTM + Bahdanau Attention**
-
-- Builds on S2VT by adding **Bahdanau (Additive) Attention** between encoder and decoder.
-- Decoder dynamically focuses on the most relevant frames while generating each word.
-- Improves contextual understanding and interpretability.
-
-**Architecture Flow:**
-
-
-Video Frames → CNN → Encoder LSTM → Bahdanau Attention → Decoder LSTM → Caption
-
-
-**Attention Mechanism:**
-\[
-\text{context} = \sum_i \alpha_i h_i, \quad \alpha_i = \text{softmax}(v^T \tanh(W_1 s_t + W_2 h_i))
-\]
-
-**Pros:** More accurate, interpretable captions.  
-**Cons:** Still sequential (slower training).
-
----
-
-### 🟧 **3️⃣ Transformer Decoder-based Model**
-
-- The final and most powerful model.
-- Uses **CNN (ResNet/I3D)** to extract frame features (acts as encoder).
-- A **Transformer Decoder** learns temporal attention and global context.
-- Adds **Positional Encoding**, **Multi-Head Self-Attention**, and **Label Smoothing Loss**.
-
-**Architecture Flow:**
-
-
-Video Frames → CNN → Linear Projection → Positional Encoding → Transformer Decoder → Caption
-
-
-**Advantages:**
-- Fully parallelized (faster training).
-- Captures long-term dependencies.
-- Best accuracy among all models.
-
-**Loss Function:**
-CrossEntropy with Label Smoothing  
-\[
-L = -\sum_i y_i \log(\hat{y}_i)
-\]
+```
++--------------------+
+|    Input Video     |
++--------------------+
+           |
+           v
++--------------------+
+|   Frame Sampling   |
+| (Uniform Sampling) |
++--------------------+
+           |
+           v
++--------------------+
+|  Frame Preprocess  |
+| Resize + Normalize |
++--------------------+
+           |
+           v
++---------------------------+
+| CNN Feature Extraction    |
+| ResNet / MobileNet /      |
+| ShuffleNet                |
++---------------------------+
+           |
+           v
++---------------------------+
+| Feature Sequence          |
+| (Temporal Representation) |
++---------------------------+
+           |
+           v
++-------------------------------+
+| Sequence Decoder              |
+| LSTM / GRU / Transformer      |
++-------------------------------+
+           |
+           v
++---------------------------+
+| Caption Generation        |
+| Word-by-word Prediction   |
++---------------------------+
+           |
+           v
++---------------------------+
+| Evaluation Metrics        |
+| BLEU / METEOR / ROUGE /   |
+| CIDEr                     |
++---------------------------+
+```
 
 ---
 
-## 📊 Performance Comparison
+# Step-by-Step Working
 
-| Model | BLEU-4 | METEOR | ROUGE-L | CIDEr | Remarks |
-|--------|---------|---------|----------|--------|----------|
-| S2VT (LSTM) | 0.38 | 0.27 | 0.55 | 0.41 | Basic sequential model |
-| LSTM + Attention | 0.51 | 0.33 | 0.61 | 0.67 | Frame-level focus improves accuracy |
-| Transformer Decoder | **0.61** | **0.39** | **0.68** | **0.81** | Best context and fluency |
+## 1. Video Input
+
+The system takes a short video clip as input. Each video consists of a sequence of frames representing visual events over time. The goal is to convert this visual sequence into a meaningful textual description.
 
 ---
 
-## 🧰 Tools & Frameworks
+## 2. Frame Sampling
 
-| Component | Library / Model |
-|------------|----------------|
-| Feature Extraction | ResNet-152 / I3D |
-| Deep Learning | PyTorch |
-| Dataset | MSVD (YouTubeClips) |
-| Preprocessing | ffmpeg, numpy |
-| Evaluation | BLEU, METEOR, ROUGE, CIDEr |
-| Optimizer | Adam / AdamW |
-| Loss | CrossEntropy / Label Smoothing |
-| Platform | Google Colab / Drive |
+Processing every frame of a video is computationally expensive and redundant. Therefore, a subset of frames is extracted using **uniform frame sampling**.
 
----
+Example:
 
-## 🧩 Dataset Preparation
+```
+Total frames in video = 300
+Frames selected = 30
 
-1. Download MSVD dataset (YouTubeClips).
-2. Extract frames (e.g. 40 per video) using `ffmpeg`.
-3. Extract CNN features and save as `.npy`.
-4. Split dataset into train / val / test.
-5. Build vocabulary from captions.
+Sampling interval = 300 / 30
+                   = every 10th frame
+```
+
+This ensures that the model captures the temporal progression of the video while reducing redundant information.
 
 ---
 
-## 🚀 Training Commands
+## 3. Frame Preprocessing
 
-Each model has a separate training notebook:
+Each sampled frame is preprocessed before being passed into the CNN encoder.
 
-| Model | File | Description |
-|--------|------|-------------|
-| S2VT LSTM | `S2VT_Encoder_Decoder_Model.ipynb` | Basic encoder-decoder |
-| LSTM + Attention | `attention_cap13may.ipynb` | Adds Bahdanau attention |
-| Transformer Decoder | `transferbase_capt.ipynb` | Transformer-based decoder with label smoothing |
+### Resize
 
----
+Frames are resized to:
 
-## 📈 Example Result
+```
+224 x 224 pixels
+```
 
-**Input Video:** A man playing football  
-**Generated Captions:**
-- S2VT → “man playing ball”  
-- Attention LSTM → “a man is playing football”  
-- Transformer → “a man is playing football on the field”
+which is the standard input resolution for most pretrained CNN models.
 
----
+### Normalization
 
-## 🔮 Future Scope
+Pixel values are normalized using **ImageNet statistics**:
 
-- Real-time video captioning (using lightweight models like MobileNet + Transformer)
-- Video Question Answering (VQA)
-- Multimodal video understanding (audio + vision)
-- Captioning for visually impaired assistance systems
+```
+mean = [0.485, 0.456, 0.406]
+std  = [0.229, 0.224, 0.225]
+```
+
+This ensures compatibility with pretrained networks.
 
 ---
 
-## 👨‍💻 Contributors
+# Visual Feature Extraction
 
-**Developed by:** Kuldeep Kumar  
-**Guided by:** [Your Guide/Professor Name]  
-**Institute:** [Your College / University Name]
+Each frame is passed through a pretrained **Convolutional Neural Network (CNN)** to extract high-level visual features.
+
+Instead of using the final classification layer, the **feature embedding layer** is used to obtain a dense representation.
+
+```
+Frame
+  |
+  v
+CNN Encoder
+  |
+  v
+Feature Vector (512 / 1024 / 2048 dimensions)
+```
+
+These features capture:
+
+* objects
+* human actions
+* scene context
+* spatial relationships
 
 ---
 
-## 🏁 References
+# CNN Models Evaluated
 
-- Venugopalan et al., *Sequence to Sequence - Video to Text*, CVPR 2015  
-- Bahdanau et al., *Neural Machine Translation by Jointly Learning to Align and Translate*, 2015  
-- Vaswani et al., *Attention is All You Need*, NIPS 2017  
+Several CNN backbones were evaluated to study the trade-off between **accuracy and efficiency**.
+
+### ResNet Family
+
+```
+ResNet18
+ResNet50
+ResNet101
+ResNet152
+```
+
+Advantages:
+
+* deep feature representation
+* strong visual understanding
+
+Limitations:
+
+* higher computational cost
 
 ---
 
-### ⭐ If you like this project, don’t forget to star the repo!
+### MobileNet Family
 
-<img width="1536" height="1024" alt="ChatGPT Image Nov 4, 2025, 07_01_42 PM" src="https://github.com/user-attachments/assets/09181994-c3eb-4134-8620-91e7de2038e1" />
+```
+MobileNetV2
+MobileNetV3
+```
 
+Advantages:
 
+* lightweight architecture
+* fewer parameters
+* optimized for mobile devices
 
+---
 
+### ShuffleNetV2
 
+Advantages:
+
+* low latency
+* efficient channel operations
+* optimized for real-time applications
+
+---
+
+# Feature Sequence Representation
+
+After feature extraction, each video is represented as a sequence of feature vectors.
+
+Example:
+
+```
+Video
+ |
+ v
+30 Frames Sampled
+ |
+ v
+CNN Feature Extraction
+ |
+ v
+Feature Sequence
+
+[F1, F2, F3, F4, ... F30]
+```
+
+This sequence preserves the **temporal structure of the video**.
+
+---
+
+# Sequence Decoders
+
+Three different decoder architectures were evaluated for caption generation.
+
+---
+
+## LSTM Decoder
+
+Long Short-Term Memory (LSTM) networks are designed to model sequential data and capture long-range dependencies.
+
+Key components:
+
+```
+Input Gate
+Forget Gate
+Output Gate
+Memory Cell
+```
+
+Advantages:
+
+* strong temporal modeling
+* stable training behavior
+
+However, multiple gating operations increase computational complexity.
+
+---
+
+## GRU Decoder
+
+GRU is a simplified version of LSTM that uses fewer gates.
+
+```
+Reset Gate
+Update Gate
+```
+
+Advantages:
+
+* fewer parameters
+* faster training
+* comparable or better performance
+
+---
+
+## Transformer Decoder
+
+Transformer decoders rely on **self-attention mechanisms** instead of recurrent connections.
+
+Advantages:
+
+* parallel processing
+* effective long-range dependency modeling
+
+However, transformers typically require larger datasets and higher compute resources.
+
+---
+
+# Caption Generation
+
+The decoder generates captions **word-by-word**.
+
+Example output:
+
+```
+<START>
+A
+man
+is
+playing
+guitar
+<END>
+```
+
+At each timestep, the model predicts the next word based on:
+
+```
+P(word_t | previous words, video features)
+```
+
+The word with the highest probability is selected.
+
+---
+
+# Evaluation Metrics
+
+The generated captions are evaluated using standard NLP metrics.
+
+---
+
+## BLEU (Bilingual Evaluation Understudy)
+
+BLEU measures **n-gram precision overlap** between generated captions and reference captions.
+
+Variants:
+
+```
+BLEU-1 → unigram
+BLEU-2 → bigram
+BLEU-3 → trigram
+BLEU-4 → four-gram
+```
+
+Higher BLEU scores indicate better lexical similarity.
+
+---
+
+## METEOR
+
+METEOR evaluates captions using:
+
+* synonym matching
+* stemming
+* recall and precision
+
+It correlates better with human judgement compared to BLEU.
+
+---
+
+## ROUGE-L
+
+ROUGE-L measures the **Longest Common Subsequence (LCS)** between reference and generated captions.
+
+Example:
+
+```
+Reference : A man is playing guitar
+Generated : A man plays guitar
+```
+
+The longer the common subsequence, the higher the ROUGE-L score.
+
+---
+
+## CIDEr
+
+CIDEr evaluates captions using **TF-IDF weighted n-grams** across multiple human annotations.
+
+It measures the consensus between generated captions and reference captions.
+
+CIDEr is one of the most widely used metrics in video captioning benchmarks.
+
+---
+
+# Decoder Performance Comparison
+
+Experiments were conducted using **MobileNetV2 features with 30 uniformly sampled frames on the MSVD dataset**.
+
+```
++-------------+-------+-------+-------+-------+-------+--------+---------+--------+--------+
+| Decoder     |BLEU-1 |BLEU-2 |BLEU-3 |BLEU-4 |CIDEr  |METEOR  |ROUGE-L  |Params  |GFLOPs |
++-------------+-------+-------+-------+-------+-------+--------+---------+--------+--------+
+| LSTM        | 89.9  | 77.1  | 66.8  | 53.3  | 96.9  | 34.5   | 74.1    |14.54M  | 9.18G |
+| GRU         | 80.5  | 69.4  | 60.3  | 51.5  | 90.2  | 34.6   | 71.3    |14.54M  | 9.18G |
+| Transformer | 96.3  | 87.9  | 71.0  | 63.7  | 114.1  | 47.3   | 84.0    |24.00M  | 9.73G |
++-------------+-------+-------+-------+-------+-------+--------+---------+--------+--------+
+```
+
+---
+
+# Key Findings
+
+* **GRU achieves the best overall performance across most evaluation metrics**
+* It achieves the highest **BLEU-4 score (51.5)** and **CIDEr score (90.2)**
+* GRU maintains the same computational complexity as LSTM
+* Transformer requires higher parameters but underperforms in this configuration
+
+---
+
+# Final Model Selection
+
+Based on experimental evaluation:
+
+```
+Frame Sampling  → 30 Uniform Frames
+Feature Extractor → MobileNetV2
+Decoder → GRU
+```
+
+This configuration achieves the best balance between **caption quality and computational efficiency**.
+
+---
+
+# Applications
+
+* Video retrieval and indexing
+* Assistive systems for visually impaired users
+* Automated video summarization
+* Surveillance video understanding
+* Multimedia content analysis
+
+---
+
+# Author
+
+Kuldeep Kumar
+M.Tech Research Project
